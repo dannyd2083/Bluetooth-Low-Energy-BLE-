@@ -20,6 +20,8 @@ AuthReq = 0
 MAXKEYSIZE = 16
 OOBDATA = 0
 MAC_ADDR = b'\x22\x33\x44\x55\x66\x77'
+INIT_KEY_DISTRIBUTION = 0
+RSP_KEY_DISTRIBUTION = 0
 
 def generate_public_private_key_pair():
     # Generate a random ECC private key

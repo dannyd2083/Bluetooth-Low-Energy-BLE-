@@ -22,6 +22,8 @@ MAXKEYSIZE = 16
 OOBDATA = 0
 AuthReq = 0
 MAC_ADDR = b'\x11\x22\x33\x44\x55\x66'
+INIT_KEY_DISTRIBUTION = 0
+RSP_KEY_DISTRIBUTION = 0
 
 SECRET = b'This is a secret message'
 

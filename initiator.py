@@ -57,7 +57,10 @@ def generate_public_private_key_pair():
 def f4(u, v, x, z):
     # TODO1: Finish f4()
     # u, v, x, z are types of bytes, the return value should be type of bytes
-    return b'\x00'
+    msg = u+v+z
+    cobj = CMAC.new(x,ciphermod= AES)
+    cobj.update(msg)
+    return cobj.digest()
 
 def f5(w, n1, n2, a1, a2):
     salt = b'\x6C\x88\x83\x91\xAA\xF5\xA5\x38\x60\x37\x0B\xDB\x5A\x60\x83\xBE'

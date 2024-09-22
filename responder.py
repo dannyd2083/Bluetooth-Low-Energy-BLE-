@@ -36,24 +36,50 @@ def generate_public_private_key_pair():
     return (private_key, public_numbers)
 
 def f4(u, v, x, z):
-    # TODO1: Finish f4()
     # u, v, x, z are types of bytes, the return value should be type of bytes
-    return b'\x00'
+    msg = u + v + z
+    cobj = CMAC.new(x, ciphermod=AES)
+    cobj.update(msg)
+    return cobj.digest()
 
 def f5(w, n1, n2, a1, a2):
     salt = b'\x6C\x88\x83\x91\xAA\xF5\xA5\x38\x60\x37\x0B\xDB\x5A\x60\x83\xBE'
     keyid = b'\x62\x74\x6c\x65'
+    cobj = CMAC.new(salt, ciphermod=AES)
+    cobj.update(w)
+    T = cobj.digest()
+    le = b'\x01\x00'  # 256
+    # Ensure A1 and A2 are 56 bits (7 bytes), padding as needed
+    a1_padded = a1.rjust(7, b'\x00')
+    a2_padded = a2.rjust(7, b'\x00')
 
-    # TODO2: Finish f5()
+    # Compute MacKey (counter = 0)
+    counter_0 = b'\x00'  # Counter = 0
+    message_0 = counter_0 + keyid + n1 + n2 + a1_padded + a2_padded + le
+    cobj = CMAC.new(T, ciphermod=AES)
+    cobj.update(message_0)
+    mackey = cobj.digest()
+
+    # Compute LTK (Counter = 1)
+    counter_1 = b'\x01'  # Counter = 1
+    message_1 = counter_1 + keyid + n1 + n2 + a1_padded + a2_padded + le
+    cobj = CMAC.new(T, ciphermod=AES)
+    cobj.update(message_1)
+    ltk = cobj.digest()
+    return mackey, ltk
     # w, n1, n2, a1, a2 are types of bytes, the return value should be tuple of bytes (mackey, ltk)
 
-    return (mackey, ltk)
 
 def f6(w, n1, n2, r, iocap, a1, a2):
     # TODO3: Finish f6()
     # w, n1, n2, r, iocap, a1, a2 are types of bytes, the return value should be type of bytes
-
-    return b'\x00'
+    # Ensure A1 and A2 are 56 bits (7 bytes), padding as needed
+    a1_padded = a1.rjust(7, b'\x00')
+    a2_padded = a2.rjust(7, b'\x00')
+    m = n1 + n2 + r + iocap + a1 + a2
+    conbj = CMAC.new(w, ciphermod=AES)
+    conbj.update(m)
+    return cobj.digest()
 
 def derive_session_key(skd_p, skd_c, ltk):
     # TODO8: Finish derive_session_key()

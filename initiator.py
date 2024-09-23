@@ -95,7 +95,7 @@ def f6(w, n1, n2, r, iocap, a1, a2):
     # Ensure A1 and A2 are 56 bits (7 bytes), padding as needed
     a1_padded = a1.rjust(7, b'\x00')
     a2_padded = a2.rjust(7, b'\x00')
-    m = n1+n2+r+iocap+a1+a2
+    m = n1+n2+r+iocap+a1_padded+a2_padded
     conbj = CMAC.new(w, ciphermod=AES)
     conbj.update(m)
     return cobj.digest()
@@ -105,6 +105,22 @@ def derive_session_key(skd_p, skd_c, ltk):
     # skd_p, sdk_c, and ltk are types of bytes, the return value should be type of bytes
     # session_key = AES_ECB(LTK, SKD)
     return b'\x00'
+
+
+def create_pairing_request():
+    # Fields for the pairing request
+    io_capability = b'\x03'  # NoInputNoOutput for Just Works
+    oob_flag = b'\x00'  # OOB not available
+    auth_flag = b'\x00'  # No MITM protection
+    encryption_key_size = b'\x07'  # Key size (e.g., 7 bytes)
+    initiator_key_distribution = b'\x00'  # LTK distributed by initiator
+    responder_key_distribution = b'\x00'  # LTK distributed by responder
+
+
+    # Combine the fields into a pairing request packet
+    pairing_request = io_capability + oob_flag + auth_flag + encryption_key_size + \
+                       initiator_key_distribution + responder_key_distribution
+    return pairing_request
 
 def start_jw_pairing(host='127.0.0.1', port=65432):
     conn = remote(host, port)
@@ -120,12 +136,12 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
 
         # Send pairing request to responder
         # TODO4: Finish pairing Phase 1
-        pair_req = # To finish
+        pair_req = create_pairing_request()
         conn.send(pair_req)
         log.info(f'Send pairing request:{pair_req.hex()}')
 
         # Receive pairing response
-        pair_rsp = #TODO4
+        pair_rsp = conn.recv()
         log.info(f'Received pairing response:{pair_rsp.hex()}')
 
         if pair_rsp[0] == PAIR_RSP_OPCODE:

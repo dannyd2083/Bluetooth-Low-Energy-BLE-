@@ -76,7 +76,7 @@ def f6(w, n1, n2, r, iocap, a1, a2):
     # Ensure A1 and A2 are 56 bits (7 bytes), padding as needed
     a1_padded = a1.rjust(7, b'\x00')
     a2_padded = a2.rjust(7, b'\x00')
-    m = n1 + n2 + r + iocap + a1 + a2
+    m = n1 + n2 + r + iocap + a1_padded + a2_padded
     conbj = CMAC.new(w, ciphermod=AES)
     conbj.update(m)
     return cobj.digest()
@@ -86,6 +86,24 @@ def derive_session_key(skd_p, skd_c, ltk):
     # skd_p, sdk_c, and ltk are types of bytes, the return value should be type of bytes
     # session_key = AES_ECB(LTK, SKD)
     return b'\x00'
+
+
+def create_pairing_response():
+    # Fields for the pairing response
+    io_capability = b'\x03'  # NoInputNoOutput for Just Works
+    oob_flag = b'\x00'  # No OOB data available
+    auth_flag = b'\x00'  # No MITM protection required
+    encryption_key_size = b'\x07'  # Max encryption key size (e.g., 7 bytes)
+    initiator_key_distribution = b'\x00'  # LTK distributed by initiator
+    responder_key_distribution = b'\x00'  # LTK distributed by responder
+    reserved = b'\x00\x00'  # Reserved bytes
+
+    # Combine the fields into a pairing response packet
+    pairing_response = io_capability + oob_flag + auth_flag + encryption_key_size + \
+                       initiator_key_distribution + responder_key_distribution
+
+    return pairing_response
+
 
 def start_jw_pairing(conn):
     # Exchange MAC addresses
@@ -102,10 +120,10 @@ def start_jw_pairing(conn):
 
     if pair_req[0] == PAIR_REQ_OPCODE:
         # Get iocap_a
-        iocap_a = #TODO4
+        iocap_a = IOCap
 
         # Send pairing response
-        pair_rsp = #TODO4
+        pair_rsp = create_pairing_response()
         conn.send(pair_rsp)
         log.info(f'Send pairing response:{pair_rsp.hex()}')
 

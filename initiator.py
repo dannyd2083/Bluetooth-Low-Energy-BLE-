@@ -147,14 +147,15 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
 
         if pair_rsp[0] == PAIR_RSP_OPCODE:
             # Get iocap_b
-            iocap_b = #TODO4
+            iocap_b = pair_rsp[1]
 
             # Generate public/private key pair
             (private_key, public_key) = generate_public_private_key_pair()
             # TODO5: Finish pairing Phase 2, public key exchange
 
             # Send public key to responder
-            pair_pub_key = #TODO5
+            #TODO5
+            pair_pub_key =  b'\x01\x00' #DUMMY
             conn.send(pair_pub_key)
             log.info(f'Send public key:{pair_pub_key.hex()}')
 
@@ -168,7 +169,8 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                 responder_pub_key_y = pair_pub_key[33:65]
 
                 # Calculate DHkey
-                dhkey = #TODO5
+                #TODO5
+                dhkey =  b'\x01\x00' #DUMMY
                 log.info(f'DHkey:{dhkey.hex()}')
 
                 # Receive confirmation (Cb) from responder
@@ -181,7 +183,8 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                     # Generate random number Na
 
                     # Send random number Na to responder
-                    Na_bytes = #TODO6
+                    #TODO6
+                    Na_bytes =  b'\x01\x00' #DUMMY
                     conn.send(Na_bytes)
                     log.info(f'Send random number:{Na_bytes.hex()}')
 
@@ -191,7 +194,8 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                     if Nb_bytes[0] == PAIR_RAND_OPCODE:
 
                         # Calculate Cb
-                        Cb_calculated = #TODO6
+                        #TODO6
+                        Cb_calculated =  b'\x01\x00' #DUMMY
 
                         if Cb_calculated == Cb_received:
                             # Skip user confirmation value calculation
@@ -199,10 +203,11 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                             # Calculate mackey and ltk
                             # Add b'\x00' (address type) to MAC_ADDR and MAC_ADDR_responder
                             # TODO7: Finish pairing Phase 2, authentication phase 2
-                            (mackey, ltk) = #TODO7
+                            (mackey, ltk) = b'\x01\x00' #DUMMY
 
                             # Calculate Ea and send it to responder
-                            Ea = #TODO7
+                            #TODO7
+                            Ea =  b'\x01\x00' #DUMMY
                             conn.send(p8(PAIR_CONF_OPCODE) + Ea)
                             log.info(f'Send confirmation:{Ea.hex()}')
 
@@ -212,15 +217,18 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
 
                             if Eb_bytes[0] == PAIR_CONF_OPCODE:
                                 Eb = Eb_bytes[1:]
-                                Eb_calculated = #TODO7
+                                #TODO7
+                                Eb_calculated =  b'\x01\x00' #DUMMY
 
                                 if Eb_calculated == Eb:
                                     print('Pairing successful, now distribute keys')
 
                                     # TODO8: Finish pairing Phase 3
                                     # Generate IV_C and SKD_C and send them to responder
-                                    iv_c = #TODO8
-                                    skd_c = #TODO8
+                                    #TODO8
+                                    iv_c =  b'\x01\x00' #DUMMY
+                                    #TODO8
+                                    skd_c =  b'\x01\x00' #DUMMY
                                     conn.send(iv_c + skd_c)
                                     log.info(f'Send IV_C + SKD_C:{iv_c.hex() + skd_c.hex()}')
 
@@ -229,8 +237,8 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                                     log.info(f'Received IV_P + SKD_P:{ivskd_p.hex()}')
                                     iv_p = ivskd_p[:4]
                                     skd_p = ivskd_p[4:]
-
-                                    session_iv = #TODO8
+                                    #TODO8
+                                    session_iv =  b'\x01\x00' #DUMMY
                                     session_key = derive_session_key(skd_p, skd_c, ltk)
 
                                     cipher = AES.new(session_key, AES.MODE_CCM, nonce=session_iv)

@@ -120,7 +120,7 @@ def start_jw_pairing(conn):
 
     if pair_req[0] == PAIR_REQ_OPCODE:
         # Get iocap_a
-        iocap_a = IOCap
+        iocap_a = pair_req[1]
 
         # Send pairing response
         pair_rsp = create_pairing_response()
@@ -141,20 +141,22 @@ def start_jw_pairing(conn):
             # TODO5: Finish pairing Phase 2, public key exchange
 
             # Send public key to initiator
-            public_key_bytes = #TODO5
+            #TODO5
+            public_key_bytes = b'\x01\x00' #DUMMY
             conn.send(public_key_bytes)
             log.info(f'Send public key:{public_key_bytes.hex()}')
 
             # Calculate DHkey
-            dhkey = #TODO5
+            #TODO5
+            dhkey = b'\x01\x00' #DUMMY
             log.info(f'DHkey:{dhkey.hex()}')
 
             # TODO6: Finish pairing Phase 2, authentication phase 1
             # Generate random number Nb
-            Nb = #TODO6
+            Nb = b'\x01\x00' #DUMMY
 
             # Calculate Cb
-            Cb = #TODO6
+            Cb = b'\x01\x00' #DUMMY
 
             # Send Cb to initiator
             Cb_bytes = p8(PAIR_CONF_OPCODE) + Cb
@@ -176,10 +178,11 @@ def start_jw_pairing(conn):
                 # Calculate mackey and ltk
                 # Add b'\x00' (address type) to MAC_ADDR and MAC_ADDR_responder
                 # TODO7: Finish pairing Phase 2, authentication phase 2
-                (mackey, ltk) = #TODO7
+                (mackey, ltk) = (b'\x01\x00', b'\x01\x00') #DUMMY
 
                 # Calculate Eb
-                Eb = #TODO7
+                #TODO7
+                Eb = b'\x01\x00' #DUMMY
 
                 # Receive Ea from initiator and check Ea
                 Ea_bytes = conn.recv()
@@ -187,7 +190,8 @@ def start_jw_pairing(conn):
 
                 if Ea_bytes[0] == PAIR_CONF_OPCODE:
                     Ea = Ea_bytes[1:]
-                    Ea_calculated = #TODO7
+                    #TODO7
+                    Ea_calculated = b'\x01\x00' #DUMMY
                     if Ea == Ea_calculated:
                         conn.send(p8(PAIR_CONF_OPCODE) + Eb)
                         log.info(f'Send Eb:{Eb.hex()}')
@@ -201,18 +205,20 @@ def start_jw_pairing(conn):
                         skd_c = ivskd_c[4:]
 
                         # Generate IV_P and SKD_P and send them to responder
-                        iv_p = #TODO8
-                        skd_p = #TODO8
+                        #TODO8
+                        iv_p = b'\x01\x00' #DUMMY
+                        #TODO8
+                        skd_p = b'\x01\x00' #DUMMY
                         conn.send(iv_p + skd_p)
                         log.info(f'Send IV_P + SKD_P:{iv_p.hex() + skd_p.hex()}')
-
-                        session_iv = #TODO8
+                        #TODO8
+                        session_iv = b'\x01\x00' #DUMMY
                         session_key = derive_session_key(skd_p, skd_c, ltk)
 
                         enc_data = conn.recv()
                         log.info(f'Received encrypted data:{enc_data.hex()}')
-
-                        data = # TODO9: decrypted enc_data
+                        #TODO9
+                        data = b'\x01\x00' #DUMMY
 
                         print('Decrypted data:', data.decode('utf-8'))
 

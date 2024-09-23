@@ -109,18 +109,19 @@ def derive_session_key(skd_p, skd_c, ltk):
 
 def create_pairing_request():
     # Fields for the pairing request
-    io_capability = b'\x03'  # NoInputNoOutput for Just Works
-    oob_flag = b'\x00'  # OOB not available
-    auth_flag = b'\x00'  # No MITM protection
-    encryption_key_size = b'\x07'  # Key size (e.g., 7 bytes)
-    initiator_key_distribution = b'\x00'  # LTK distributed by initiator
-    responder_key_distribution = b'\x00'  # LTK distributed by responder
+    code = PAIR_REQ_OPCODE
+    io_capability = IOCap  # NoInputNoOutput for Just Works
+    oob_flag = OOBDATA  # No OOB data available
+    auth_flag = AuthReq  # No MITM protection required
+    encryption_key_size = MAXKEYSIZE  # Max encryption key size (e.g., 7 bytes)
+    initiator_key_distribution = INIT_KEY_DISTRIBUTION  # LTK distributed by initiator
+    responder_key_distribution = RSP_KEY_DISTRIBUTION  # LTK distributed by responder
 
-
-    # Combine the fields into a pairing request packet
-    pairing_request = io_capability + oob_flag + auth_flag + encryption_key_size + \
+    # Combine the fields into a pairing response packet
+    pairing_request = code + io_capability + oob_flag + auth_flag + encryption_key_size + \
                        initiator_key_distribution + responder_key_distribution
-    return pairing_request
+
+    return bytearray(pairing_request)
 
 def start_jw_pairing(host='127.0.0.1', port=65432):
     conn = remote(host, port)

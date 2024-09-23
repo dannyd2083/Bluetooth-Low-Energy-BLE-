@@ -90,19 +90,19 @@ def derive_session_key(skd_p, skd_c, ltk):
 
 def create_pairing_response():
     # Fields for the pairing response
-    io_capability = b'\x03'  # NoInputNoOutput for Just Works
-    oob_flag = b'\x00'  # No OOB data available
-    auth_flag = b'\x00'  # No MITM protection required
-    encryption_key_size = b'\x07'  # Max encryption key size (e.g., 7 bytes)
-    initiator_key_distribution = b'\x00'  # LTK distributed by initiator
-    responder_key_distribution = b'\x00'  # LTK distributed by responder
-    reserved = b'\x00\x00'  # Reserved bytes
+    code = PAIR_RSP_OPCODE
+    io_capability = IOCap  # NoInputNoOutput for Just Works
+    oob_flag = OOBDATA  # No OOB data available
+    auth_flag = AuthReq  # No MITM protection required
+    encryption_key_size = MAXKEYSIZE  # Max encryption key size (e.g., 7 bytes)
+    initiator_key_distribution = INIT_KEY_DISTRIBUTION  # LTK distributed by initiator
+    responder_key_distribution = RSP_KEY_DISTRIBUTION # LTK distributed by responder
 
     # Combine the fields into a pairing response packet
-    pairing_response = io_capability + oob_flag + auth_flag + encryption_key_size + \
+    pairing_response = code+ io_capability + oob_flag + auth_flag + encryption_key_size + \
                        initiator_key_distribution + responder_key_distribution
 
-    return pairing_response
+    return bytearray(pairing_response)
 
 
 def start_jw_pairing(conn):

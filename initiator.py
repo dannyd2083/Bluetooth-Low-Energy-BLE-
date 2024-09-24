@@ -54,6 +54,11 @@ def generate_public_private_key_pair():
 
     return (private_key, public_numbers)
 
+def compute_dhkey(private_key, peer_public_key):
+    # Calculate the shared secret (DHKey) using the private key and the peer's public key
+    shared_dhkey = private_key.exchange(ec.ECDH(), peer_public_key)
+    return shared_dhkey
+
 def f4(u, v, x, z):
     # u, v, x, z are types of bytes, the return value should be type of bytes
     msg = u+v+z
@@ -109,19 +114,23 @@ def derive_session_key(skd_p, skd_c, ltk):
 
 def create_pairing_request():
     # Fields for the pairing request
-    code = PAIR_REQ_OPCODE
-    io_capability = IOCap  # NoInputNoOutput for Just Works
-    oob_flag = OOBDATA  # No OOB data available
-    auth_flag = AuthReq  # No MITM protection required
-    encryption_key_size = MAXKEYSIZE  # Max encryption key size (e.g., 7 bytes)
-    initiator_key_distribution = INIT_KEY_DISTRIBUTION  # LTK distributed by initiator
-    responder_key_distribution = RSP_KEY_DISTRIBUTION  # LTK distributed by responder
+
+    code = PAIR_REQ_OPCODE.to_bytes(1, 'big')  # 1 byte for opcode
+    io_capability = IOCap.to_bytes(1, 'big')  # 1 byte for IO capability
+    oob_flag = OOBDATA.to_bytes(1, 'big')  # 1 byte for OOB flag
+    auth_flag = AuthReq.to_bytes(1, 'big')  # 1 byte for authentication requirements
+    encryption_key_size = MAXKEYSIZE.to_bytes(1, 'big')  # 1 byte for max encryption key size
+    initiator_key_distribution = INIT_KEY_DISTRIBUTION.to_bytes(1, 'big')  # 1 byte for key distribution
+    responder_key_distribution = RSP_KEY_DISTRIBUTION.to_bytes(1, 'big')  # 1 byte for key distribution
 
     # Combine the fields into a pairing response packet
-    pairing_request = code + io_capability + oob_flag + auth_flag + encryption_key_size + \
-                       initiator_key_distribution + responder_key_distribution
 
-    return bytearray(pairing_request)
+    pairing_request = (code + io_capability + oob_flag + auth_flag +
+                       encryption_key_size + initiator_key_distribution + responder_key_distribution)
+
+    print(f'created pairing_request {pairing_request.hex()}')
+
+    return pairing_request
 
 def start_jw_pairing(host='127.0.0.1', port=65432):
     conn = remote(host, port)
@@ -152,17 +161,17 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
             # Generate public/private key pair
             (private_key, public_key) = generate_public_private_key_pair()
             # TODO5: Finish pairing Phase 2, public key exchange
-
             # Send public key to responder
             #TODO5
-            pair_pub_key =  b'\x01\x00' #DUMMY
+            public_key_bytes = private_key.public_key().public_bytes(encoding=serialization.Encoding.X962,
+                                                                     format=serialization.PublicFormat.CompressedPoint)
+            pair_pub_key = PAIR_PUB_KEY.to_bytes(1, 'big') + public_key_bytes
             conn.send(pair_pub_key)
             log.info(f'Send public key:{pair_pub_key.hex()}')
 
             # Receive public key from responder
             pair_pub_key = conn.recv()
             log.info(f'Received public key:{pair_pub_key.hex()}')
-
             if pair_pub_key[0] == PAIR_PUB_KEY:
                 # Get public key from responder
                 responder_pub_key_x = pair_pub_key[1:33]
@@ -170,7 +179,12 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
 
                 # Calculate DHkey
                 #TODO5
-                dhkey =  b'\x01\x00' #DUMMY
+                peer_public_key_bytes = pair_pub_key[1:]
+                peer_public_key = ec.EllipticCurvePublicKey.from_encoded_point(
+                    ec.SECP256R1(), peer_public_key_bytes
+                )
+                dhkey = compute_dhkey(private_key,peer_public_key)
+                print(f'DHKey initiator {dhkey.hex()}')
                 log.info(f'DHkey:{dhkey.hex()}')
 
                 # Receive confirmation (Cb) from responder

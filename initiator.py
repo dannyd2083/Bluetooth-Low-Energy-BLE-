@@ -26,7 +26,7 @@ MAC_ADDR = b'\x11\x22\x33\x44\x55\x66'
 INIT_KEY_DISTRIBUTION = 0
 RSP_KEY_DISTRIBUTION = 0
 
-SECRET = b'This is a secret message'
+SECRET = b'This is A VERY VERY HARD HOMEWORK'
 
 
 # Create and configure logger
@@ -110,7 +110,10 @@ def derive_session_key(skd_p, skd_c, ltk):
     # TODO8: Finish derive_session_key()
     # skd_p, sdk_c, and ltk are types of bytes, the return value should be type of bytes
     # session_key = AES_ECB(LTK, SKD)
-    return b'\x00'
+    skd = skd_p + skd_c
+    cipher = AES.new(ltk, AES.MODE_ECB)
+    session_key = cipher.encrypt(skd)
+    return session_key
 
 
 def create_pairing_request():
@@ -242,21 +245,20 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                             # Receive confirmation Eb from responder
                             Eb_bytes = conn.recv()
                             log.info(f'Received confirmation:{Eb_bytes.hex()}')
-
                             if Eb_bytes[0] == PAIR_CONF_OPCODE:
                                 Eb = Eb_bytes[1:]
                                 #TODO7
-                                Eb_calculated =  b'\x01\x00' #DUMMY
-
+                                Eb_calculated =  f6(mackey,Na,Nb,b'\x00',iocap_b.to_bytes(1, 'big'),MAC_ADDR_responder,MAC_ADDR) #DUMMY
+                                log.info(f'Eb_calculate:{Eb_calculated.hex()}')
+                                log.info(f'Eb:{Eb.hex()}')
                                 if Eb_calculated == Eb:
                                     print('Pairing successful, now distribute keys')
-
                                     # TODO8: Finish pairing Phase 3
                                     # Generate IV_C and SKD_C and send them to responder
                                     #TODO8
-                                    iv_c =  b'\x01\x00' #DUMMY
+                                    iv_c =  secrets.token_bytes(4) #TODO8
                                     #TODO8
-                                    skd_c =  b'\x01\x00' #DUMMY
+                                    skd_c = secrets.token_bytes(8) #TODO8
                                     conn.send(iv_c + skd_c)
                                     log.info(f'Send IV_C + SKD_C:{iv_c.hex() + skd_c.hex()}')
 
@@ -266,7 +268,7 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                                     iv_p = ivskd_p[:4]
                                     skd_p = ivskd_p[4:]
                                     #TODO8
-                                    session_iv =  b'\x01\x00' #DUMMY
+                                    session_iv =  iv_p + iv_c #DUMMY
                                     session_key = derive_session_key(skd_p, skd_c, ltk)
 
                                     cipher = AES.new(session_key, AES.MODE_CCM, nonce=session_iv)

@@ -92,7 +92,11 @@ def derive_session_key(skd_p, skd_c, ltk):
     # TODO8: Finish derive_session_key()
     # skd_p, sdk_c, and ltk are types of bytes, the return value should be type of bytes
     # session_key = AES_ECB(LTK, SKD)
-    return b'\x00'
+    skd = skd_p + skd_c
+    cipher = AES.new(ltk, AES.MODE_ECB)
+    session_key = cipher.encrypt(skd)
+    return session_key
+
 
 
 def create_pairing_response():
@@ -203,7 +207,7 @@ def start_jw_pairing(conn):
                 # TODO7: Finish pairing Phase 2, authentication phase 2
                 log.info(f'na responser side:{Na.hex()}')
                 log.info(f'nb responser side:{Nb.hex()}')
-                (mackey, ltk) =  f5(dhkey,Na,Nb,MAC_ADDR,MAC_init) #TODO7
+                (mackey, ltk) =  f5(dhkey,Na,Nb,MAC_init,MAC_ADDR) #TODO7
 
                 log.info(f'responder mackey:{mackey.hex()}')
                 log.info(f'responder ltk:{ltk.hex()}')
@@ -219,8 +223,8 @@ def start_jw_pairing(conn):
                 if Ea_bytes[0] == PAIR_CONF_OPCODE:
                     Ea = Ea_bytes[1:]
                     #TODO7
-                    Ea_calculated = f6(mackey,Na,Nb,b'\x00',IOCap.to_bytes(1, 'big'),MAC_init,MAC_ADDR) #TODO7
-
+                    Ea_calculated = f6(mackey,Na,Nb,b'\x00',iocap_a.to_bytes(1, 'big'),MAC_init,MAC_ADDR) #TODO7
+                    log.info(f'Ea calculated:{Ea_calculated.hex()}')
                     if Ea == Ea_calculated:
                         conn.send(p8(PAIR_CONF_OPCODE) + Eb)
                         log.info(f'Send Eb:{Eb.hex()}')
@@ -235,22 +239,27 @@ def start_jw_pairing(conn):
 
                         # Generate IV_P and SKD_P and send them to responder
                         #TODO8
-                        iv_p = b'\x01\x00' #DUMMY
+                        iv_p = secrets.token_bytes(4) #TODO8
                         #TODO8
-                        skd_p = b'\x01\x00' #DUMMY
+                        skd_p = secrets.token_bytes(8) #TODO8
                         conn.send(iv_p + skd_p)
                         log.info(f'Send IV_P + SKD_P:{iv_p.hex() + skd_p.hex()}')
                         #TODO8
-                        session_iv = b'\x01\x00' #DUMMY
+                        session_iv = iv_p + iv_c #DUMMY
                         session_key = derive_session_key(skd_p, skd_c, ltk)
 
                         enc_data = conn.recv()
                         log.info(f'Received encrypted data:{enc_data.hex()}')
+                        enc_message = enc_data[:-16]  # The last 16 bytes are the tag
+                        tag = enc_data[-16:]
+                        # Create the AES-CCM object with the session key and nonce (session_iv)
+                        cipher = AES.new(session_key, AES.MODE_CCM, nonce=session_iv)
                         #TODO9
-                        data = b'\x01\x00' #DUMMY
-
-                        print('Decrypted data:', data.decode('utf-8'))
-
+                        try:
+                            data = cipher.decrypt_and_verify(enc_message, tag)
+                            print('Decrypted data:', data.decode('utf-8'))
+                        except ValueError:
+                            print("Decryption failed. The tag does not match!")
                     else:
                         print('Pairing failed')
                 else:

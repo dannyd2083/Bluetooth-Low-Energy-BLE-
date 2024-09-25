@@ -86,7 +86,7 @@ def f6(w, n1, n2, r, iocap, a1, a2):
     m = n1 + n2 + r + iocap + a1_padded + a2_padded
     conbj = CMAC.new(w, ciphermod=AES)
     conbj.update(m)
-    return cobj.digest()
+    return conbj.digest()
 
 def derive_session_key(skd_p, skd_c, ltk):
     # TODO8: Finish derive_session_key()
@@ -201,11 +201,16 @@ def start_jw_pairing(conn):
                 # Calculate mackey and ltk
                 # Add b'\x00' (address type) to MAC_ADDR and MAC_ADDR_responder
                 # TODO7: Finish pairing Phase 2, authentication phase 2
-                (mackey, ltk) = (b'\x01\x00', b'\x01\x00') #DUMMY
+                log.info(f'na responser side:{Na.hex()}')
+                log.info(f'nb responser side:{Nb.hex()}')
+                (mackey, ltk) =  f5(dhkey,Na,Nb,MAC_ADDR,MAC_init) #TODO7
+
+                log.info(f'responder mackey:{mackey.hex()}')
+                log.info(f'responder ltk:{ltk.hex()}')
 
                 # Calculate Eb
                 #TODO7
-                Eb = b'\x01\x00' #DUMMY
+                Eb =f6(mackey,Na,Nb,b'\x00',IOCap.to_bytes(1, 'big'),MAC_ADDR,MAC_init) #TODO7
 
                 # Receive Ea from initiator and check Ea
                 Ea_bytes = conn.recv()
@@ -214,7 +219,8 @@ def start_jw_pairing(conn):
                 if Ea_bytes[0] == PAIR_CONF_OPCODE:
                     Ea = Ea_bytes[1:]
                     #TODO7
-                    Ea_calculated = b'\x01\x00' #DUMMY
+                    Ea_calculated = f6(mackey,Na,Nb,b'\x00',IOCap.to_bytes(1, 'big'),MAC_init,MAC_ADDR) #TODO7
+
                     if Ea == Ea_calculated:
                         conn.send(p8(PAIR_CONF_OPCODE) + Eb)
                         log.info(f'Send Eb:{Eb.hex()}')

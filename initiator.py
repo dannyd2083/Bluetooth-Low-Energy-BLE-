@@ -104,7 +104,7 @@ def f6(w, n1, n2, r, iocap, a1, a2):
     m = n1+n2+r+iocap+a1_padded+a2_padded
     conbj = CMAC.new(w, ciphermod=AES)
     conbj.update(m)
-    return cobj.digest()
+    return conbj.digest()
 
 def derive_session_key(skd_p, skd_c, ltk):
     # TODO8: Finish derive_session_key()
@@ -205,7 +205,8 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
 
                     # Send random number Na to responder
                     #TODO6
-                    Na_bytes = PAIR_RAND_OPCODE.to_bytes(1, 'big') + secrets.token_bytes(16) #TODO6
+                    Na = secrets.token_bytes(16)
+                    Na_bytes = PAIR_RAND_OPCODE.to_bytes(1, 'big') + Na #TODO6
                     conn.send(Na_bytes)
                     log.info(f'Send random number:{Na_bytes.hex()}')
 
@@ -216,7 +217,8 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                         peer_public_key = serialize_key(peer_public_key)
                         # Calculate Cb
                         #TODO6
-                        Cb_calculated = f4(peer_public_key,public_key_bytes,Nb_bytes[1:],b'\x00') #DUMMY
+                        Nb = Nb_bytes[1:]
+                        Cb_calculated = f4(peer_public_key,public_key_bytes,Nb,b'\x00') #TODO6
 
                         if Cb_calculated == Cb_received:
                             # Skip user confirmation value calculation
@@ -224,11 +226,16 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                             # Calculate mackey and ltk
                             # Add b'\x00' (address type) to MAC_ADDR and MAC_ADDR_responder
                             # TODO7: Finish pairing Phase 2, authentication phase 2
-                            (mackey, ltk) = b'\x01\x00' #DUMMY
 
+                            log.info(f'na initiator side:{Na.hex()}')
+                            log.info(f'nb initiator side:{Nb.hex()}')
+                            (mackey, ltk) =  f5(dhkey,Na,Nb,MAC_ADDR,MAC_ADDR_responder)#TODO7
+
+                            log.info(f'initiator mackey:{mackey.hex()}')
+                            log.info(f'initiator ltk:{ltk.hex()}')
                             # Calculate Ea and send it to responder
                             #TODO7
-                            Ea =  b'\x01\x00' #DUMMY
+                            Ea = f6(mackey,Na,Nb,b'\x00',IOCap.to_bytes(1, 'big'),MAC_ADDR,MAC_ADDR_responder) #TODO7
                             conn.send(p8(PAIR_CONF_OPCODE) + Ea)
                             log.info(f'Send confirmation:{Ea.hex()}')
 

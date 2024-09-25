@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import secrets
+
 from pwn import *
 
 from Crypto.Cipher import AES
@@ -113,6 +115,12 @@ def create_pairing_response():
 
     return pairing_request
 
+def deserialize_key(key):
+    return ec.EllipticCurvePublicKey.from_encoded_point( ec.SECP256R1(),key)
+
+def serialize_key (key):
+    return key.public_bytes(encoding=serialization.Encoding.X962,
+                               format=serialization.PublicFormat.CompressedPoint)
 
 def start_jw_pairing(conn):
     # Exchange MAC addresses
@@ -151,15 +159,14 @@ def start_jw_pairing(conn):
 
             # Send public key to initiator
             #TODO5
-            data_to_send = PAIR_PUB_KEY.to_bytes(1, 'big') + private_key.public_key().public_bytes(encoding=serialization.Encoding.X962,format=serialization.PublicFormat.CompressedPoint )
-            public_key_bytes =data_to_send
+            pk_b = serialize_key(private_key.public_key())
+            public_key_bytes = PAIR_PUB_KEY.to_bytes(1, 'big') + pk_b
             conn.send(public_key_bytes)
             log.info(f'Send public key:{public_key_bytes.hex()}')
 
             peer_public_key_bytes = pair_pub_key[1:]
-            peer_public_key = ec.EllipticCurvePublicKey.from_encoded_point(
-                ec.SECP256R1(), peer_public_key_bytes
-            )
+            peer_public_key = deserialize_key(peer_public_key_bytes)
+            print(f'Initiator public key {peer_public_key}')
             # Calculate DHkey
             #TODO5
             dhkey = compute_dhkey(private_key,peer_public_key)
@@ -168,19 +175,20 @@ def start_jw_pairing(conn):
 
             # TODO6: Finish pairing Phase 2, authentication phase 1
             # Generate random number Nb
-            Nb = b'\x01\x00' #DUMMY
-
+            Nb = secrets.token_bytes(16) #TODO6
+            peer_public_key = serialize_key(peer_public_key)
             # Calculate Cb
-            Cb = b'\x01\x00' #DUMMY
-
+            Cb = f4(pk_b,peer_public_key,Nb, b'\x00') #TODO6
             # Send Cb to initiator
             Cb_bytes = p8(PAIR_CONF_OPCODE) + Cb
+            log.info(f'Send out Cb:{Cb_bytes.hex()}')
             conn.send(Cb_bytes)
             log.info(f'Send Cb:{Cb_bytes.hex()}')
 
             # Receive Na from initiator
             Na_bytes = conn.recv()
             log.info(f'Received Na:{Na_bytes.hex()}')
+
             if Na_bytes[0] == PAIR_RAND_OPCODE:
                 # Send Nb to initiator
                 Na = Na_bytes[1:]

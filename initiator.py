@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import logging
+import secrets
 
 from pwn import *
 
@@ -132,6 +133,15 @@ def create_pairing_request():
 
     return pairing_request
 
+
+def deserialize_key(key):
+    return ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), key)
+
+
+def serialize_key(key):
+    return key.public_bytes(encoding=serialization.Encoding.X962,
+                                  format=serialization.PublicFormat.CompressedPoint)
+
 def start_jw_pairing(host='127.0.0.1', port=65432):
     conn = remote(host, port)
 #    print(f'Connected to server at {host}:{port}')
@@ -163,8 +173,7 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
             # TODO5: Finish pairing Phase 2, public key exchange
             # Send public key to responder
             #TODO5
-            public_key_bytes = private_key.public_key().public_bytes(encoding=serialization.Encoding.X962,
-                                                                     format=serialization.PublicFormat.CompressedPoint)
+            public_key_bytes = serialize_key(private_key.public_key())
             pair_pub_key = PAIR_PUB_KEY.to_bytes(1, 'big') + public_key_bytes
             conn.send(pair_pub_key)
             log.info(f'Send public key:{pair_pub_key.hex()}')
@@ -180,9 +189,7 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                 # Calculate DHkey
                 #TODO5
                 peer_public_key_bytes = pair_pub_key[1:]
-                peer_public_key = ec.EllipticCurvePublicKey.from_encoded_point(
-                    ec.SECP256R1(), peer_public_key_bytes
-                )
+                peer_public_key = deserialize_key(peer_public_key_bytes)
                 dhkey = compute_dhkey(private_key,peer_public_key)
                 print(f'DHKey initiator {dhkey.hex()}')
                 log.info(f'DHkey:{dhkey.hex()}')
@@ -198,7 +205,7 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
 
                     # Send random number Na to responder
                     #TODO6
-                    Na_bytes =  b'\x01\x00' #DUMMY
+                    Na_bytes = PAIR_RAND_OPCODE.to_bytes(1, 'big') + secrets.token_bytes(16) #TODO6
                     conn.send(Na_bytes)
                     log.info(f'Send random number:{Na_bytes.hex()}')
 
@@ -206,10 +213,10 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                     Nb_bytes = conn.recv()
                     log.info(f'Received random number:{Nb_bytes.hex()}')
                     if Nb_bytes[0] == PAIR_RAND_OPCODE:
-
+                        peer_public_key = serialize_key(peer_public_key)
                         # Calculate Cb
                         #TODO6
-                        Cb_calculated =  b'\x01\x00' #DUMMY
+                        Cb_calculated = f4(peer_public_key,public_key_bytes,Nb_bytes[1:],b'\x00') #DUMMY
 
                         if Cb_calculated == Cb_received:
                             # Skip user confirmation value calculation

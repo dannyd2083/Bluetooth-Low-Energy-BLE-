@@ -163,26 +163,32 @@ def start_jw_pairing(conn):
 
             # Send public key to initiator
             #TODO5
-            pk_b = serialize_key(private_key.public_key())
-            public_key_bytes = PAIR_PUB_KEY.to_bytes(1, 'big') + pk_b
+            x_bytes = public_key.x.to_bytes(32, 'big')
+            y_bytes = public_key.y.to_bytes(32, 'big')
+            public_key_raw = x_bytes+ y_bytes
+            public_key_bytes = PAIR_PUB_KEY.to_bytes(1, 'big') + x_bytes+ y_bytes
+
             conn.send(public_key_bytes)
             log.info(f'Send public key:{public_key_bytes.hex()}')
-
-            peer_public_key_bytes = pair_pub_key[1:]
-            peer_public_key = deserialize_key(peer_public_key_bytes)
-            print(f'Initiator public key {peer_public_key}')
             # Calculate DHkey
             #TODO5
+            x = int.from_bytes(public_key_initor_x, 'big')
+            y = int.from_bytes(public_key_initor_y, 'big')
+            peer_public_key = ec.EllipticCurvePublicNumbers(x, y,ec.SECP256R1()).public_key()
+
+            initiator_public_key_bytes = public_key_initor_x + public_key_initor_y
+
             dhkey = compute_dhkey(private_key,peer_public_key)
-            print(f'DHKey responder {dhkey.hex()}')
             log.info(f'DHkey:{dhkey.hex()}')
 
             # TODO6: Finish pairing Phase 2, authentication phase 1
             # Generate random number Nb
             Nb = secrets.token_bytes(16) #TODO6
-            peer_public_key = serialize_key(peer_public_key)
+
             # Calculate Cb
-            Cb = f4(pk_b,peer_public_key,Nb, b'\x00') #TODO6
+            log.info(f'res public key:{public_key_bytes.hex()}')
+            log.info(f'init public_key:{initiator_public_key_bytes.hex()}')
+            Cb = f4(public_key_raw,initiator_public_key_bytes,Nb, b'\x00') #TODO6
             # Send Cb to initiator
             Cb_bytes = p8(PAIR_CONF_OPCODE) + Cb
             log.info(f'Send out Cb:{Cb_bytes.hex()}')

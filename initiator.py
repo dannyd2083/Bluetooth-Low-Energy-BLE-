@@ -176,31 +176,33 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
             # TODO5: Finish pairing Phase 2, public key exchange
             # Send public key to responder
             #TODO5
-            public_key_bytes = serialize_key(private_key.public_key())
-            pair_pub_key = PAIR_PUB_KEY.to_bytes(1, 'big') + public_key_bytes
-            conn.send(pair_pub_key)
-            log.info(f'Send public key:{pair_pub_key.hex()}')
+            x_bytes = public_key.x.to_bytes(32, 'big')
+            y_bytes = public_key.y.to_bytes(32, 'big')
+            public_key_raw = x_bytes+ y_bytes
+            public_key_bytes = PAIR_PUB_KEY.to_bytes(1, 'big') + x_bytes+ y_bytes
+            conn.send(public_key_bytes)
+            log.info(f'Send public key:{public_key_bytes.hex()}')
 
             # Receive public key from responder
             pair_pub_key = conn.recv()
             log.info(f'Received public key:{pair_pub_key.hex()}')
             if pair_pub_key[0] == PAIR_PUB_KEY:
                 # Get public key from responder
-                responder_pub_key_x = pair_pub_key[1:33]
-                responder_pub_key_y = pair_pub_key[33:65]
-
+                responder_pub_key_x = pair_pub_key [1:33]
+                responder_pub_key_y = pair_pub_key [33:65]
+                responder_pub_key_bytes = responder_pub_key_x + responder_pub_key_y
+                x = int.from_bytes(responder_pub_key_x, 'big')
+                y = int.from_bytes(responder_pub_key_y, 'big')
                 # Calculate DHkey
                 #TODO5
-                peer_public_key_bytes = pair_pub_key[1:]
-                peer_public_key = deserialize_key(peer_public_key_bytes)
+                peer_public_key = ec.EllipticCurvePublicNumbers(x, y, ec.SECP256R1()).public_key()
                 dhkey = compute_dhkey(private_key,peer_public_key)
-                print(f'DHKey initiator {dhkey.hex()}')
                 log.info(f'DHkey:{dhkey.hex()}')
 
                 # Receive confirmation (Cb) from responder
                 # TODO6: Finish pairing Phase 2, authentication phase 1
                 Cb_bytes = conn.recv()
-                log.info(f'Received confirmation:{Cb_bytes.hex()}')
+                log.info(f'cb Received confirmation:{Cb_bytes.hex()}')
 
                 if Cb_bytes[0] == PAIR_CONF_OPCODE:
                     Cb_received = Cb_bytes[1:]
@@ -211,17 +213,21 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                     Na = secrets.token_bytes(16)
                     Na_bytes = PAIR_RAND_OPCODE.to_bytes(1, 'big') + Na #TODO6
                     conn.send(Na_bytes)
-                    log.info(f'Send random number:{Na_bytes.hex()}')
+                    log.info(f'Send random number na:{Na_bytes.hex()}')
 
                     # Receive random number (Nb) from responder
                     Nb_bytes = conn.recv()
-                    log.info(f'Received random number:{Nb_bytes.hex()}')
+                    log.info(f'Received random number nb:{Nb_bytes.hex()}')
                     if Nb_bytes[0] == PAIR_RAND_OPCODE:
-                        peer_public_key = serialize_key(peer_public_key)
+
                         # Calculate Cb
                         #TODO6
                         Nb = Nb_bytes[1:]
-                        Cb_calculated = f4(peer_public_key,public_key_bytes,Nb,b'\x00') #TODO6
+                        log.info(f'res public key:{responder_pub_key_bytes.hex()}')
+                        log.info(f'init public_key:{public_key_bytes.hex()}')
+                        log.info(f'nb:{Nb_bytes.hex()}')
+                        Cb_calculated = f4(responder_pub_key_bytes,public_key_raw,Nb,b'\x00') #TODO6
+                        log.info(f'cb calculated:{Cb_calculated.hex()}')
 
                         if Cb_calculated == Cb_received:
                             # Skip user confirmation value calculation

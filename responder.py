@@ -188,7 +188,7 @@ def start_jw_pairing(conn):
             # Calculate Cb
             log.info(f'res public key:{public_key_bytes.hex()}')
             log.info(f'init public_key:{initiator_public_key_bytes.hex()}')
-            Cb = f4(public_key_raw,initiator_public_key_bytes,Nb, b'\x00') #TODO6
+            Cb = f4(x_bytes,initiator_public_key_bytes,Nb, b'\x00') #TODO6
             # Send Cb to initiator
             Cb_bytes = p8(PAIR_CONF_OPCODE) + Cb
             log.info(f'Send out Cb:{Cb_bytes.hex()}')
@@ -220,7 +220,7 @@ def start_jw_pairing(conn):
 
                 # Calculate Eb
                 #TODO7
-                Eb =f6(mackey,Na,Nb,b'\x00',p8(IOCap)+p8(OOBDATA)+p8(AuthReq),MAC_ADDR,MAC_init) #TODO7
+                Eb =f6(mackey,Na,Nb,b'\x00'.rjust(16, b'\x00'),p8(IOCap)+p8(OOBDATA)+p8(AuthReq),MAC_ADDR,MAC_init) #TODO7
 
                 # Receive Ea from initiator and check Ea
                 Ea_bytes = conn.recv()
@@ -229,7 +229,7 @@ def start_jw_pairing(conn):
                 if Ea_bytes[0] == PAIR_CONF_OPCODE:
                     Ea = Ea_bytes[1:]
                     #TODO7
-                    Ea_calculated = f6(mackey,Na,Nb,b'\x00',iocap_a,MAC_init,MAC_ADDR) #TODO7
+                    Ea_calculated = f6(mackey,Na,Nb,b'\x00'.rjust(16, b'\x00'),iocap_a,MAC_init,MAC_ADDR) #TODO7
                     log.info(f'Ea calculated:{Ea_calculated.hex()}')
                     if Ea == Ea_calculated:
                         conn.send(p8(PAIR_CONF_OPCODE) + Eb)

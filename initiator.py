@@ -169,7 +169,7 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
 
         if pair_rsp[0] == PAIR_RSP_OPCODE:
             # Get iocap_b
-            iocap_b = pair_rsp[1]
+            iocap_b = pair_rsp[1:4]
 
             # Generate public/private key pair
             (private_key, public_key) = generate_public_private_key_pair()
@@ -244,7 +244,7 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                             log.info(f'initiator ltk:{ltk.hex()}')
                             # Calculate Ea and send it to responder
                             #TODO7
-                            Ea = f6(mackey,Na,Nb,b'\x00',IOCap.to_bytes(1, 'big'),MAC_ADDR,MAC_ADDR_responder) #TODO7
+                            Ea = f6(mackey,Na,Nb,b'\x00',p8(IOCap)+p8(OOBDATA)+p8(AuthReq),MAC_ADDR,MAC_ADDR_responder) #TODO7
                             conn.send(p8(PAIR_CONF_OPCODE) + Ea)
                             log.info(f'Send confirmation:{Ea.hex()}')
 
@@ -254,7 +254,7 @@ def start_jw_pairing(host='127.0.0.1', port=65432):
                             if Eb_bytes[0] == PAIR_CONF_OPCODE:
                                 Eb = Eb_bytes[1:]
                                 #TODO7
-                                Eb_calculated =  f6(mackey,Na,Nb,b'\x00',iocap_b.to_bytes(1, 'big'),MAC_ADDR_responder,MAC_ADDR) #DUMMY
+                                Eb_calculated =  f6(mackey,Na,Nb,b'\x00',iocap_b,MAC_ADDR_responder,MAC_ADDR) #DUMMY
                                 log.info(f'Eb_calculate:{Eb_calculated.hex()}')
                                 log.info(f'Eb:{Eb.hex()}')
                                 if Eb_calculated == Eb:

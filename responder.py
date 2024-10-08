@@ -188,7 +188,7 @@ def start_jw_pairing(conn):
             # Calculate Cb
             log.info(f'res public key:{public_key_bytes.hex()}')
             log.info(f'init public_key:{initiator_public_key_bytes.hex()}')
-            Cb = f4(x_bytes,initiator_public_key_bytes,Nb, b'\x00') #TODO6
+            Cb = f4(x_bytes,public_key_initor_x,Nb, b'\x00') #TODO6
             # Send Cb to initiator
             Cb_bytes = p8(PAIR_CONF_OPCODE) + Cb
             log.info(f'Send out Cb:{Cb_bytes.hex()}')
@@ -213,14 +213,14 @@ def start_jw_pairing(conn):
                 # TODO7: Finish pairing Phase 2, authentication phase 2
                 log.info(f'na responser side:{Na.hex()}')
                 log.info(f'nb responser side:{Nb.hex()}')
-                (mackey, ltk) =  f5(dhkey,Na,Nb,MAC_init,MAC_ADDR) #TODO7
+                (mackey, ltk) =  f5(dhkey,Na,Nb,b'\x00'+MAC_init,b'\x00'+MAC_ADDR) #TODO7
 
                 log.info(f'responder mackey:{mackey.hex()}')
                 log.info(f'responder ltk:{ltk.hex()}')
 
                 # Calculate Eb
                 #TODO7
-                Eb =f6(mackey,Na,Nb,b'\x00'.rjust(16, b'\x00'),p8(IOCap)+p8(OOBDATA)+p8(AuthReq),MAC_ADDR,MAC_init) #TODO7
+                Eb =f6(mackey,Nb,Na,p8(0) * 16,p8(IOCap)+p8(OOBDATA)+p8(AuthReq),b'\x00'+MAC_ADDR,b'\x00'+MAC_init) #TODO7
 
                 # Receive Ea from initiator and check Ea
                 Ea_bytes = conn.recv()
@@ -229,7 +229,7 @@ def start_jw_pairing(conn):
                 if Ea_bytes[0] == PAIR_CONF_OPCODE:
                     Ea = Ea_bytes[1:]
                     #TODO7
-                    Ea_calculated = f6(mackey,Na,Nb,b'\x00'.rjust(16, b'\x00'),iocap_a,MAC_init,MAC_ADDR) #TODO7
+                    Ea_calculated = f6(mackey,Na, Nb,p8(0) * 16, iocap_a,b'\x00'+MAC_init,b'\x00'+ MAC_ADDR) #TODO7
                     log.info(f'Ea calculated:{Ea_calculated.hex()}')
                     if Ea == Ea_calculated:
                         conn.send(p8(PAIR_CONF_OPCODE) + Eb)
